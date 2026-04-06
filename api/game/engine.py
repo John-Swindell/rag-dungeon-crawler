@@ -7,10 +7,11 @@ from api.game.world import BOSS_ROOM, START_ROOM, TOTAL_ITEMS, build_rooms
 from api.models.game_state import GameState
 
 
-def new_game() -> GameState:
+def new_game(character: str) -> GameState:
     """Create a new game session."""
     return GameState(
         session_id=str(uuid.uuid4()),
+        character=character,
         current_room=START_ROOM,
         inventory=[],
         rooms=build_rooms(),
@@ -37,7 +38,6 @@ def move(state: GameState, direction: str) -> tuple[GameState, str]:
         }
     )
 
-    # check end condition
     state, end_msg = _check_end_condition(state)
     if end_msg:
         return state, end_msg
@@ -61,7 +61,6 @@ def pickup(state: GameState) -> tuple[GameState, str]:
     item_name = room.item
     new_inventory = [*state.inventory, item_name]
 
-    # clear item from the room
     new_rooms = {
         name: r.model_copy(update={"item": None}) if name == state.current_room else r
         for name, r in state.rooms.items()
@@ -85,7 +84,7 @@ def _check_end_condition(state: GameState) -> tuple[GameState, str]:
 
     if len(state.inventory) >= TOTAL_ITEMS:
         state = state.model_copy(update={"status": "won"})
-        return state, "Congratulations! You collected all items and escaped!"
+        return state, "You assembled the Icarus and escaped Alcatraz! Brutus couldn't stop you!"
     else:
         state = state.model_copy(update={"status": "lost"})
-        return state, "Warden Roy caught you! Game over!"
+        return state, "Brutus caught you unprepared! You're trapped in Alcatraz forever!"

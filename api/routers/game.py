@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from api.game import engine
-from api.models.actions import GameResponse, MoveRequest
+from api.models.actions import GameResponse, MoveRequest, NewGameRequest
 from api.state import manager
 
 router = APIRouter(prefix="/game", tags=["game"])
@@ -11,6 +11,7 @@ def _to_response(state, message: str) -> GameResponse:
     room = state.rooms[state.current_room]
     return GameResponse(
         session_id=state.session_id,
+        character=state.character,
         message=message,
         current_room=state.current_room,
         inventory=state.inventory,
@@ -21,11 +22,15 @@ def _to_response(state, message: str) -> GameResponse:
 
 
 @router.post("/new", response_model=GameResponse)
-async def new_game():
+async def new_game(payload: NewGameRequest):
     """Start a new game."""
-    state = engine.new_game()
+    state = engine.new_game(payload.character)
     manager.save(state)
-    return _to_response(state, "Welcome to the Prison Escape! Collect all 6 items to win.")
+    return _to_response(
+        state,
+        f"{payload.character} wakes up in a cold cell on Alcatraz. "
+        f"Collect all 8 parts of the Icarus to escape before Brutus finds you.",
+    )
 
 
 @router.get("/{session_id}", response_model=GameResponse)

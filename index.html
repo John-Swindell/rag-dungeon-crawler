@@ -9,6 +9,21 @@
         #game-terminal { border: 1px solid #00ff00; padding: 15px; height: 400px; overflow-y: scroll; margin-bottom: 10px; }
         input { background: #000; color: #00ff00; border: 1px solid #00ff00; padding: 5px; width: 80%; font-family: monospace; }
         button { background: #00ff00; color: #000; border: none; padding: 5px 15px; cursor: pointer; font-weight: bold; }
+        #character-select { margin-bottom: 10px; }
+        #character-select button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            background: #000;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            font-family: monospace;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #character-select button:hover { background: #003300; }
     </style>
 </head>
 <body>
@@ -17,6 +32,14 @@
 
     <div id="game-terminal">
         <p>Initializing connection to server...</p>
+        <p>Select your character:</p>
+    </div>
+
+    <div id="character-select">
+        <button onclick="startNewGame('Weasel')">Weasel - Albert Arlington, the one who built the plane</button>
+        <button onclick="startNewGame('Sal')">Sal - Salvatore DeLuca, the mob boss</button>
+        <button onclick="startNewGame('Billy')">Billy - Billy Handsome, the enforcer</button>
+        <button onclick="startNewGame('Finn')">Finn - Michael O'Leary, the con man</button>
     </div>
 
     <div id="input-area" style="display: none;">
@@ -25,11 +48,11 @@
     </div>
 
     <script>
-        // Point to localhost for dev, update to Cloud Run URL for production
         const API_BASE_URL = "http://localhost:8000/game";
         let currentSessionId = null;
 
         const terminal = document.getElementById("game-terminal");
+        const characterSelect = document.getElementById("character-select");
         const inputArea = document.getElementById("input-area");
         const commandInput = document.getElementById("command-input");
 
@@ -41,22 +64,30 @@
             terminal.scrollTop = terminal.scrollHeight;
         }
 
-        async function startNewGame() {
+        async function startNewGame(character) {
+            characterSelect.style.display = "none";
             try {
-                const response = await fetch(`${API_BASE_URL}/new`, { method: "POST" });
+                const response = await fetch(`${API_BASE_URL}/new`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ character: character })
+                });
                 if (!response.ok) throw new Error("Failed to connect to API");
 
                 const data = await response.json();
                 currentSessionId = data.session_id;
 
                 printToTerminal(`Connection established. Session ID: ${currentSessionId}`);
-                printToTerminal(`\n=== PRISON ESCAPE ===`);
-                printToTerminal(`You wake up in the ${data.current_room}.`);
+                printToTerminal(`\n=== ALCATRAZ - ESCAPE FROM THE ISLAND ===`);
+                printToTerminal(data.message);
+                printToTerminal(`You are in the ${data.current_room}.`);
                 printToTerminal(`Available exits: ${data.available_directions.join(", ")}`);
 
                 inputArea.style.display = "block";
+                commandInput.focus();
             } catch (error) {
                 printToTerminal("Error: Could not connect to the game server. Is it running?", true);
+                characterSelect.style.display = "block";
             }
         }
 
@@ -115,8 +146,6 @@
         commandInput.addEventListener("keypress", function(event) {
             if (event.key === "Enter") sendCommand();
         });
-
-        window.onload = startNewGame;
     </script>
 </body>
 </html>

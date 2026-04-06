@@ -14,6 +14,7 @@ class Room(BaseModel):
 
 class GameState(BaseModel):
     session_id: str
+    character: str
     current_room: str
     inventory: list[str] = Field(default_factory=list)
     rooms: dict[str, Room]

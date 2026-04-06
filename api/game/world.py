@@ -1,48 +1,142 @@
 from api.models.game_state import Room
 
+CHARACTERS = ["Weasel", "Sal", "Billy", "Finn"]
+
 ROOM_DEFINITIONS: dict[str, dict] = {
     "Cell": {
-        "connections": {"East": "Mess hall"},
+        "connections": {"East": "Michigan Avenue"},
         "item": None,
     },
-    "Mess hall": {
+    "Michigan Avenue": {
         "connections": {
             "West": "Cell",
-            "North": "Security office",
-            "South": "Showers",
-            "East": "Generator room",
+            "North": "Times Square",
+            "South": "Broadway",
+            "East": "Showers",
         },
-        "item": "gas tank",
+        "item": None,
+    },
+    "Broadway": {
+        "connections": {
+            "North": "Michigan Avenue",
+            "East": "Laundry Room",
+            "South": "Cafeteria",
+        },
+        "item": None,
+    },
+    "Times Square": {
+        "connections": {
+            "South": "Michigan Avenue",
+            "East": "Library",
+            "North": "Citadel Tunnels",
+            "West": "Infirmary",
+        },
+        "item": None,
     },
     "Showers": {
-        "connections": {"North": "Mess hall", "East": "Janitors closet"},
-        "item": "tarp",
+        "connections": {
+            "West": "Michigan Avenue",
+            "South": "Laundry Room",
+        },
+        "item": None,
     },
-    "Janitors closet": {
-        "connections": {"West": "Showers"},
-        "item": "rope",
+    "Laundry Room": {
+        "connections": {
+            "West": "Broadway",
+            "North": "Showers",
+        },
+        "item": "rigging",
     },
-    "Security office": {
-        "connections": {"South": "Mess hall", "East": "Temperature control room"},
-        "item": "computer",
+    "Cafeteria": {
+        "connections": {
+            "North": "Broadway",
+            "East": "Kitchen",
+            "South": "Recreation Yard",
+        },
+        "item": None,
     },
-    "Temperature control room": {
-        "connections": {"West": "Security office"},
-        "item": "valves",
+    "Kitchen": {
+        "connections": {"West": "Cafeteria"},
+        "item": "fuel tank",
     },
-    "Generator room": {
-        "connections": {"West": "Mess hall", "North": "Warden Roys office"},
+    "Recreation Yard": {
+        "connections": {
+            "North": "Cafeteria",
+            "East": "Guard Tower",
+            "South": "Docks",
+        },
+        "item": None,
+    },
+    "Guard Tower": {
+        "connections": {"West": "Recreation Yard"},
+        "item": "wiring kit",
+    },
+    "Docks": {
+        "connections": {
+            "North": "Recreation Yard",
+            "East": "Building 64",
+        },
         "item": "engine",
     },
-    "Warden Roys office": {
-        "connections": {"South": "Generator room"},
+    "Building 64": {
+        "connections": {
+            "West": "Docks",
+            "North": "Gondola Station",
+        },
+        "item": "flight gear",
+    },
+    "Gondola Station": {
+        "connections": {
+            "South": "Building 64",
+            "North": "Roof",
+        },
+        "item": None,
+    },
+    "Roof": {
+        "connections": {
+            "South": "Gondola Station",
+            "West": "Spiral Staircase",
+        },
+        "item": "propeller",
+    },
+    "Spiral Staircase": {
+        "connections": {
+            "East": "Roof",
+            "South": "Citadel Tunnels",
+        },
+        "item": None,
+    },
+    "Citadel Tunnels": {
+        "connections": {
+            "North": "Spiral Staircase",
+            "South": "Times Square",
+            "East": "Wardens Office",
+        },
+        "item": None,
+    },
+    "Library": {
+        "connections": {"West": "Times Square"},
+        "item": "control valves",
+    },
+    "Infirmary": {
+        "connections": {
+            "East": "Times Square",
+            "North": "Wardens Office",
+        },
+        "item": "navigation tools",
+    },
+    "Wardens Office": {
+        "connections": {
+            "South": "Infirmary",
+            "West": "Citadel Tunnels",
+        },
         "item": None,
     },
 }
 
-TOTAL_ITEMS = 6
+TOTAL_ITEMS = 8
 START_ROOM = "Cell"
-BOSS_ROOM = "Warden Roys office"
+BOSS_ROOM = "Wardens Office"
 
 
 def build_rooms() -> dict[str, Room]:

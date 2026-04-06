@@ -12,5 +12,5 @@ def client():
 @pytest.fixture
 def session_id(client):
     """Create a game and return its session_id."""
-    response = client.post("/game/new")
+    response = client.post("/game/new", json={"character": "Weasel"})
     return response.json()["session_id"]
