@@ -25,7 +25,7 @@ def _to_response(state, message: str) -> GameResponse:
 async def new_game(payload: NewGameRequest):
     """Start a new game."""
     state = engine.new_game(payload.character)
-    manager.save(state)
+    await manager.save(state)
     return _to_response(
         state,
         f"{payload.character} wakes up in a cold cell on Alcatraz. "
@@ -36,7 +36,7 @@ async def new_game(payload: NewGameRequest):
 @router.get("/{session_id}", response_model=GameResponse)
 async def get_game(session_id: str):
     """Get current game state."""
-    state = manager.load(session_id)
+    state = await manager.load(session_id)
     if state is None:
         raise HTTPException(status_code=404, detail="Session not found.")
     return _to_response(state, f"You are in {state.current_room}.")
@@ -45,22 +45,22 @@ async def get_game(session_id: str):
 @router.post("/{session_id}/move", response_model=GameResponse)
 async def move_player(session_id: str, payload: MoveRequest):
     """Move the player."""
-    state = manager.load(session_id)
+    state = await manager.load(session_id)
     if state is None:
         raise HTTPException(status_code=404, detail="Session not found.")
 
     state, message = engine.move(state, payload.direction)
-    manager.save(state)
+    await manager.save(state)
     return _to_response(state, message)
 
 
 @router.post("/{session_id}/pickup", response_model=GameResponse)
 async def pickup_item(session_id: str):
     """Pick up an item."""
-    state = manager.load(session_id)
+    state = await manager.load(session_id)
     if state is None:
         raise HTTPException(status_code=404, detail="Session not found.")
 
     state, message = engine.pickup(state)
-    manager.save(state)
+    await manager.save(state)
     return _to_response(state, message)

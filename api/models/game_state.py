@@ -10,6 +10,7 @@ class Room(BaseModel):
     name: str
     connections: dict[str, str]  # direction -> room_name
     item: str | None = None
+    
 
 
 class GameState(BaseModel):

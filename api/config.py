@@ -11,6 +11,9 @@ class Settings(BaseSettings):
         "null",  # local file:// origin
     ]
 
+    mongo_uri: str = ""
+    mongo_db: str = "dungeon_crawler"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

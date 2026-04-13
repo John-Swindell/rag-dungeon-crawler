@@ -1,10 +1,21 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api import db
 from api.config import settings
 from api.routers import game, health
 
-app = FastAPI(title="RAG Narrative Engine API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    db.connect()
+    yield
+    db.disconnect()
+
+
+app = FastAPI(title="RAG Narrative Engine API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

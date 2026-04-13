@@ -138,6 +138,16 @@ TOTAL_ITEMS = 8
 START_ROOM = "Cell"
 BOSS_ROOM = "Wardens Office"
 
+MAP_SIZE = (800, 1000)
+GRID_SIZE = 20
+
+class Map:
+    def __init__(self):
+        self.map = {}
+        self.num_rooms =  len(ROOM_DEFINITIONS)
+        self.min_space_dimension = 2 * GRID_SIZE
+
+
 
 def build_rooms() -> dict[str, Room]:
     """Return a fresh copy of the room graph."""
