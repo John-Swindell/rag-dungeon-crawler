@@ -1,6 +1,45 @@
-from api.models.game_state import Room
+from api.models.game_state import Rect, Room, Map
+
+from typing import Optional
+import random
 
 CHARACTERS = ["Weasel", "Sal", "Billy", "Finn"]
+
+TOTAL_ITEMS = 8
+START_ROOM = "Cell"
+BOSS_ROOM = "Wardens Office"
+
+MAP_AREA = [800, 800]
+MIN_ROOM_SIZE = [20, 20]
+MAX_ROOM_SIZE = [40, 40]
+
+
+def split_room(area: Rect) -> list[int]:
+    """
+    I don't like recursion. Find another way. Flooding memory with pydantic basemodel validation and a fat stack of
+    randomly allocated new objects sounds like a mess even at this scale
+    """
+    # TODO Split should return pos, nodes should know each others' pos, splits do not need to be recursive
+    # If it must be, will swap to @dataclass.
+    pass
+
+
+def build_rooms(size: list[int]) -> Map:
+    """
+    Function should take in the total size of the map, and return, well I'm not entirely sure.
+    """
+    # TODO Figure this out
+    return Map
+
+
+def build_rooms() -> dict[str, Room]:
+    """Return a fresh copy of the room graph."""
+    return {
+        name: Room(name=name, connections=dict(data["connections"]), item=data["item"])
+        for name, data in ROOM_DEFINITIONS.items()
+    }
+
+
 
 ROOM_DEFINITIONS: dict[str, dict] = {
     "Cell": {
@@ -133,25 +172,3 @@ ROOM_DEFINITIONS: dict[str, dict] = {
         "item": None,
     },
 }
-
-TOTAL_ITEMS = 8
-START_ROOM = "Cell"
-BOSS_ROOM = "Wardens Office"
-
-MAP_SIZE = (800, 1000)
-GRID_SIZE = 20
-
-class Map:
-    def __init__(self):
-        self.map = {}
-        self.num_rooms =  len(ROOM_DEFINITIONS)
-        self.min_space_dimension = 2 * GRID_SIZE
-
-
-
-def build_rooms() -> dict[str, Room]:
-    """Return a fresh copy of the room graph."""
-    return {
-        name: Room(name=name, connections=dict(data["connections"]), item=data["item"])
-        for name, data in ROOM_DEFINITIONS.items()
-    }
