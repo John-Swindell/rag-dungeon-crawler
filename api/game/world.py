@@ -1,4 +1,4 @@
-from api.models.game_state import Rect, Room, Map, BSPNode
+from api.models.game_state import Rect, Room, BSPNode
 
 from typing import Optional
 import random
@@ -15,7 +15,7 @@ MAX_ROOM_SIZE = [40, 40]
 
 
 def partition_node(node: BSPNode, min_size: int, iterations: int) -> None:
-    """Recurisvely splits the nodes to generate the BSP tree"""
+    """Recursively splits the nodes to generate the BSP tree"""
     if iterations == 0:
         return
 
@@ -25,7 +25,7 @@ def partition_node(node: BSPNode, min_size: int, iterations: int) -> None:
     elif node.height > node.width * 1.25:
         split_horiz = True
 
-    Max_val = (node.height if split_horiz else node.width) - min_size
+    max_val = (node.height if split_horiz else node.width) - min_size
     if max_val <= min_size:
         return
 
@@ -37,7 +37,7 @@ def partition_node(node: BSPNode, min_size: int, iterations: int) -> None:
         node.right = BSPNode(node.x, node.y + split_point, node.width, node.height - split_point)
     else:
         node.left = BSPNode(node.x, node.y, split_point, node.height)
-        node.right = BSPNode(node.x + split_point, node.y, node.width, split_point - node.height)
+        node.right = BSPNode(node.x + split_point, node.y, node.width - split_point, node.height)
 
     partition_node(node.left, min_size, iterations - 1)
     partition_node(node.right, min_size, iterations - 1)
@@ -110,7 +110,8 @@ def connect_nodes(node: BSPNode, rooms_dict: dict[str, Room]) -> None:
         dir_eswn = "South" if dy > 0 else "North"
         dir_wesn = "North" if dy > 0 else "South"
 
-    rooms_dict[room1_name].connections
+    rooms_dict[room1_name].connections[dir_eswn] = room2_name
+    rooms_dict[room2_name].connections[dir_wesn] = room1_name
 
 def get_center(node: BSPNode) -> tuple[int, int]:
     """Calculates the center of BSP node"""
@@ -121,7 +122,7 @@ def get_center(node: BSPNode) -> tuple[int, int]:
 def get_leaves(node: BSPNode) -> list[BSPNode]:
     """Additional helper to get leaf nodes directly during build"""
     if node.is_leaf(): return [node]
-    return (get_leaves(node.left) if node.left else []) + (get_leaves(n.right) if n.right else [])
+    return (get_leaves(node.left) if node.left else []) + (get_leaves(node.right) if node.right else [])
 
 def build_rooms() -> dict[str, Room]:
     """
@@ -131,7 +132,7 @@ def build_rooms() -> dict[str, Room]:
     """
     root = BSPNode(0, 0, MAP_AREA[0], MAP_AREA[1])
 
-    parition_node(root, min_size=MIN_ROOM_SIZE[0], iterations=4)
+    partition_node(root, min_size=MIN_ROOM_SIZE[0], iterations=4)
 
     # gathers all tree leaves, or the actual usable rooms in this case
     room_rects = get_rooms(root, padding=20)

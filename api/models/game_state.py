@@ -28,10 +28,6 @@ class Room(BaseModel):
     item: str | None = None
     room_info: Rect
 
-class Map(BaseModel):
-    """Map basemodel"""
-    # TODO research this
-
 class GameState(BaseModel):
     session_id: str
     character: str
