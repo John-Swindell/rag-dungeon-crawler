@@ -1,4 +1,4 @@
-from api.models.game_state import Rect, Room, Map
+from api.models.game_state import Rect, Room, Map, BSPNode
 
 from typing import Optional
 import random
@@ -14,33 +14,159 @@ MIN_ROOM_SIZE = [20, 20]
 MAX_ROOM_SIZE = [40, 40]
 
 
-def split_room(area: Rect) -> list[int]:
-    """
-    I don't like recursion. Find another way. Flooding memory with pydantic basemodel validation and a fat stack of
-    randomly allocated new objects sounds like a mess even at this scale
-    """
-    # TODO Split should return pos, nodes should know each others' pos, splits do not need to be recursive
-    # If it must be, will swap to @dataclass.
-    pass
+def partition_node(node: BSPNode, min_size: int, iterations: int) -> None:
+    """Recurisvely splits the nodes to generate the BSP tree"""
+    if iterations == 0:
+        return
+
+    split_horiz = random.choice([True, False])
+    if node.width > node.height * 1.25:
+        split_horiz = False
+    elif node.height > node.width * 1.25:
+        split_horiz = True
+
+    Max_val = (node.height if split_horiz else node.width) - min_size
+    if max_val <= min_size:
+        return
+
+    # actual split execution here
+    split_point = random.randint(min_size, max_val)
+
+    if split_horiz:
+        node.left = BSPNode(node.x, node.y, node.width, split_point)
+        node.right = BSPNode(node.x, node.y + split_point, node.width, node.height - split_point)
+    else:
+        node.left = BSPNode(node.x, node.y, split_point, node.height)
+        node.right = BSPNode(node.x + split_point, node.y, node.width, split_point - node.height)
+
+    partition_node(node.left, min_size, iterations - 1)
+    partition_node(node.right, min_size, iterations - 1)
 
 
-def build_rooms(size: list[int]) -> Map:
-    """
-    Function should take in the total size of the map, and return, well I'm not entirely sure.
-    """
-    # TODO Figure this out
-    return Map
+def get_primary_leaf_name(node: BSPNode) -> str | None:
+    """Helper function that fetches the name of the first available room in the node;s space"""
+    if node.is_leaf():
+        return getattr(node, 'room_name', None)
 
+    if node.left:
+        return get_primary_leaf_name(node.left)
+    if node.right:
+        return get_primary_leaf_name(node.right)
+    return None
+
+
+def get_rooms(node: BSPNode, padding: int = 20) -> list[Rect]:
+    """ Traverses the tree, findes leaves, and shrinks into rooms with walls """
+    if node.is_leaf():
+        room_x = node.x + padding
+        room_y = node.y + padding
+        room_w = node.width - (padding * 2)
+        room_h = node.height - (padding * 2)
+
+        return [Rect(position=[room_x, room_y], size=[room_w, room_h])]
+
+
+    rooms = []
+    if node.left:
+        rooms.extend(get_rooms(node.left, padding))
+    if node.right:
+        rooms.extend(get_rooms(node.right, padding))
+
+
+
+def connect_nodes(node: BSPNode, rooms_dict: dict[str, Room]) -> None:
+    """Recursively connects sibling nodes and translates into the compass directions"""
+    if node.is_leaf():
+        return
+
+    # recurse bottom of tree first
+    if node.left:
+        connect_nodes(node.left, rooms_dict)
+    if node.right:
+        connect_nodes(node.right, rooms_dict)
+
+    # connects siblings at curr level
+    if node.left and node.right:
+        cx1, cy1 = get_center(node.left)
+        cx2, cy2 = get_center(node.right)
+
+    room1_name = get_primary_leaf_name(node.left)
+    room2_name = get_primary_leaf_name(node.right)
+
+    if not room1_name or not room2_name:
+        return
+
+    # delta calc
+    dx = cx2 - cx1
+    dy = cy2 - cy1
+
+
+    if abs(dx) > abs(dy):
+        # horizontal connection
+        dir_eswn = "East" if dx > 0 else "West"
+        dir_wesn = "West" if dx > 0 else "East"
+    else:
+        # vertical connection
+        dir_eswn = "South" if dy > 0 else "North"
+        dir_wesn = "North" if dy > 0 else "South"
+
+    rooms_dict[room1_name].connections
+
+def get_center(node: BSPNode) -> tuple[int, int]:
+    """Calculates the center of BSP node"""
+    center_x = node.x + (node.width // 2)
+    center_y = node.y + (node.height // 2)
+    return center_x, center_y 
+
+def get_leaves(node: BSPNode) -> list[BSPNode]:
+    """Additional helper to get leaf nodes directly during build"""
+    if node.is_leaf(): return [node]
+    return (get_leaves(node.left) if node.left else []) + (get_leaves(n.right) if n.right else [])
 
 def build_rooms() -> dict[str, Room]:
-    """Return a fresh copy of the room graph."""
-    return {
-        name: Room(name=name, connections=dict(data["connections"]), item=data["item"])
-        for name, data in ROOM_DEFINITIONS.items()
-    }
+    """
+    Actual pipeline orchestrator for the whole BSP generation. 
+    Internal functions use dataclasses, maps back to Pydantic models / boundaries
+    See /api/models/game_state.py for relevant defs 
+    """
+    root = BSPNode(0, 0, MAP_AREA[0], MAP_AREA[1])
 
+    parition_node(root, min_size=MIN_ROOM_SIZE[0], iterations=4)
 
+    # gathers all tree leaves, or the actual usable rooms in this case
+    room_rects = get_rooms(root, padding=20)
 
+    static_room_names = list(ROOM_DEFINITIONS.keys())
+    generated_rooms_dict: dict[str, Room] = {}
+
+    leaves = get_leaves(root)
+
+    for i, leaf in enumerate(leaves):
+        # if there are too many generated rooms, falls back to "Room_X" 
+        room_name = static_room_names[i] if i < len(static_room_names) else f"Secret_Room_{i}"
+
+        leaf.room_name = room_name
+
+        item = ROOM_DEFINITIONS.get(room_name, {}).get("item", None)
+
+        # Generates the room according to Pydantic spec - /api/models
+        room_x = leaf.x + 20
+        room_y = leaf.y + 20
+        room_w = leaf.width - 40
+        room_h = leaf.height - 40
+
+        generated_rooms_dict[room_name] = Room(
+            name=room_name,
+            connections={}, # will be filled in from connect_nodes()
+            item=item,
+            room_info=Rect(position=[room_x, room_y], size=[room_w, room_h])
+        )
+
+    connect_nodes(root, generated_rooms_dict)
+
+    return generated_rooms_dict
+
+# Hardcoded but included at the bottom to prevent the file from becoming chaotic 
 ROOM_DEFINITIONS: dict[str, dict] = {
     "Cell": {
         "connections": {"East": "Michigan Avenue"},
