@@ -22,6 +22,12 @@ class BSPNode:
     left: Optional['BSPNode'] = None
     right: Optional['BSPNode'] = None
 
+    room_name: Optional[str] = None
+
+    # Helper method
+    def is_leaf(self) -> bool:
+        return self.left is None and self.right is None
+
 class Room(BaseModel):
     name: str
     connections: dict[str, str]  # direction -> room_name
