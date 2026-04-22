@@ -1,6 +1,4 @@
 from api.models.game_state import Rect, Room, BSPNode
-
-from typing import Optional
 import random
 
 CHARACTERS = ["Weasel", "Sal", "Billy", "Finn"]
@@ -39,12 +37,13 @@ def partition_node(node: BSPNode, min_size: int, iterations: int) -> None:
         node.left = BSPNode(node.x, node.y, split_point, node.height)
         node.right = BSPNode(node.x + split_point, node.y, node.width - split_point, node.height)
 
-    partition_node(node.left, min_size, iterations - 1)
-    partition_node(node.right, min_size, iterations - 1)
+    if node.left and node.right:
+        partition_node(node.left, min_size, iterations - 1)
+        partition_node(node.right, min_size, iterations - 1)
 
 
 def get_primary_leaf_name(node: BSPNode) -> str | None:
-    """Helper function that fetches the name of the first available room in the node;s space"""
+    """Helper function that fetches the name of the first available room in the node's space"""
     if node.is_leaf():
         return getattr(node, 'room_name', None)
 
@@ -53,25 +52,6 @@ def get_primary_leaf_name(node: BSPNode) -> str | None:
     if node.right:
         return get_primary_leaf_name(node.right)
     return None
-
-
-def get_rooms(node: BSPNode, padding: int = 20) -> list[Rect]:
-    """ Traverses the tree, findes leaves, and shrinks into rooms with walls """
-    if node.is_leaf():
-        room_x = node.x + padding
-        room_y = node.y + padding
-        room_w = node.width - (padding * 2)
-        room_h = node.height - (padding * 2)
-
-        return [Rect(position=[room_x, room_y], size=[room_w, room_h])]
-
-
-    rooms = []
-    if node.left:
-        rooms.extend(get_rooms(node.left, padding))
-    if node.right:
-        rooms.extend(get_rooms(node.right, padding))
-
 
 
 def connect_nodes(node: BSPNode, rooms_dict: dict[str, Room]) -> None:
@@ -90,39 +70,41 @@ def connect_nodes(node: BSPNode, rooms_dict: dict[str, Room]) -> None:
         cx1, cy1 = get_center(node.left)
         cx2, cy2 = get_center(node.right)
 
-    room1_name = get_primary_leaf_name(node.left)
-    room2_name = get_primary_leaf_name(node.right)
+        room1_name = get_primary_leaf_name(node.left)
+        room2_name = get_primary_leaf_name(node.right)
 
-    if not room1_name or not room2_name:
-        return
+        if not room1_name or not room2_name:
+            return
 
-    # delta calc
-    dx = cx2 - cx1
-    dy = cy2 - cy1
+        # delta calc
+        dx = cx2 - cx1
+        dy = cy2 - cy1
 
+        if abs(dx) > abs(dy):
+            # horizontal connection
+            dir_eswn = "East" if dx > 0 else "West"
+            dir_wesn = "West" if dx > 0 else "East"
+        else:
+            # vertical connection
+            dir_eswn = "South" if dy > 0 else "North"
+            dir_wesn = "North" if dy > 0 else "South"
 
-    if abs(dx) > abs(dy):
-        # horizontal connection
-        dir_eswn = "East" if dx > 0 else "West"
-        dir_wesn = "West" if dx > 0 else "East"
-    else:
-        # vertical connection
-        dir_eswn = "South" if dy > 0 else "North"
-        dir_wesn = "North" if dy > 0 else "South"
+        rooms_dict[room1_name].connections[dir_eswn] = room2_name
+        rooms_dict[room2_name].connections[dir_wesn] = room1_name
 
-    rooms_dict[room1_name].connections[dir_eswn] = room2_name
-    rooms_dict[room2_name].connections[dir_wesn] = room1_name
 
 def get_center(node: BSPNode) -> tuple[int, int]:
     """Calculates the center of BSP node"""
     center_x = node.x + (node.width // 2)
     center_y = node.y + (node.height // 2)
-    return center_x, center_y 
+    return center_x, center_y
+
 
 def get_leaves(node: BSPNode) -> list[BSPNode]:
     """Additional helper to get leaf nodes directly during build"""
     if node.is_leaf(): return [node]
     return (get_leaves(node.left) if node.left else []) + (get_leaves(node.right) if node.right else [])
+
 
 def build_rooms() -> dict[str, Room]:
     """
@@ -133,9 +115,6 @@ def build_rooms() -> dict[str, Room]:
     root = BSPNode(0, 0, MAP_AREA[0], MAP_AREA[1])
 
     partition_node(root, min_size=MIN_ROOM_SIZE[0], iterations=4)
-
-    # gathers all tree leaves, or the actual usable rooms in this case
-    room_rects = get_rooms(root, padding=20)
 
     static_room_names = list(ROOM_DEFINITIONS.keys())
     generated_rooms_dict: dict[str, Room] = {}
@@ -158,7 +137,7 @@ def build_rooms() -> dict[str, Room]:
 
         generated_rooms_dict[room_name] = Room(
             name=room_name,
-            connections={}, # will be filled in from connect_nodes()
+            connections={},  # will be filled in from connect_nodes()
             item=item,
             room_info=Rect(position=[room_x, room_y], size=[room_w, room_h])
         )
@@ -167,7 +146,8 @@ def build_rooms() -> dict[str, Room]:
 
     return generated_rooms_dict
 
-# Hardcoded but included at the bottom to prevent the file from becoming chaotic 
+
+# Hardcoded but included at the bottom to prevent the file from becoming chaotic
 ROOM_DEFINITIONS: dict[str, dict] = {
     "Cell": {
         "connections": {"East": "Michigan Avenue"},
