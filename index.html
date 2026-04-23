@@ -9,9 +9,9 @@
             --bg: #12100d;
             --panel: #1b1712;
             --panel-strong: #251f17;
-            --text: #d8caa8;
-            --muted: #93896f;
-            --line: #5f5644;
+            --text: #e6dabd;
+            --muted: #c4b899;
+            --line: #7a7158;
             --green: #8aff80;
             --gold: #f4c95d;
             --red: #ff5d4d;
@@ -87,9 +87,18 @@
 
         .shell {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
-            gap: 18px;
+            grid-template-columns: minmax(0, 1fr) minmax(420px, 620px);
+            gap: 22px;
             align-items: start;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .shell aside {
+            position: sticky;
+            top: 16px;
+            display: grid;
+            gap: 14px;
         }
 
         .panel {
@@ -139,9 +148,25 @@
         }
 
         .essay {
-            max-height: 58vh;
+            max-height: 62vh;
             overflow-y: auto;
             line-height: 1.65;
+        }
+
+        .essay::-webkit-scrollbar,
+        #game-terminal::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .essay::-webkit-scrollbar-track,
+        #game-terminal::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .essay::-webkit-scrollbar-thumb,
+        #game-terminal::-webkit-scrollbar-thumb {
+            background: var(--line);
+            border-radius: 4px;
         }
 
         .essay h2,
@@ -159,11 +184,12 @@
         }
 
         #game-terminal {
-            min-height: 430px;
-            max-height: 58vh;
-            padding: 18px;
+            min-height: 360px;
+            max-height: 50vh;
+            padding: 18px 20px;
             overflow-y: auto;
-            line-height: 1.5;
+            line-height: 1.55;
+            font-size: 14px;
         }
 
         #game-terminal p {
@@ -187,8 +213,40 @@
 
         #character-select {
             display: grid;
-            gap: 8px;
-            margin-top: 12px;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .character-button {
+            display: grid;
+            gap: 4px;
+            padding: 14px 16px;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .character-button .name {
+            color: var(--gold);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 14px;
+        }
+
+        .character-button .role {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .character-button:hover .name {
+            color: var(--gold);
+        }
+
+        input:focus,
+        button:focus {
+            outline: none;
+            border-color: var(--gold);
+            color: var(--gold);
         }
 
         input,
@@ -202,6 +260,11 @@
             border: 1px solid var(--line);
             color: var(--green);
             background: #090907;
+        }
+
+        input::placeholder {
+            color: #8aa885;
+            opacity: 1;
         }
 
         button {
@@ -245,7 +308,8 @@
 
         #map {
             width: 100%;
-            min-height: 430px;
+            aspect-ratio: 1 / 1;
+            min-height: 560px;
             border: 1px solid var(--line);
             background:
                 linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
@@ -254,10 +318,42 @@
             background-size: 40px 40px;
         }
 
-        #hint-panel,
-        #context-panel {
+        .map-legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 6px 12px;
             margin-top: 12px;
-            padding: 14px;
+            font-size: 12px;
+            color: var(--muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .map-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .map-legend i {
+            width: 14px;
+            height: 14px;
+            border: 1px solid var(--muted);
+            display: inline-block;
+        }
+
+        .legend-current { background: rgba(244, 201, 93, 0.88); border-color: var(--gold); }
+        .legend-warden  { background: rgba(255, 93, 77, 0.84);  border-color: var(--red); }
+        .legend-item    { background: rgba(123, 199, 255, 0.55); border-color: var(--blue); }
+        .legend-visited { background: rgba(138, 255, 128, 0.30); border-color: var(--green); }
+
+        #hint-panel {
+            margin-top: 14px;
+            padding: 14px 16px;
+        }
+
+        #context-panel {
+            padding: 14px 16px;
         }
 
         #hints,
@@ -293,7 +389,7 @@
             border: 0;
         }
 
-        @media (max-width: 980px) {
+        @media (max-width: 1080px) {
             body {
                 padding: 14px;
             }
@@ -302,9 +398,17 @@
                 grid-template-columns: 1fr;
             }
 
-            #game-terminal,
+            .shell aside {
+                position: static;
+            }
+
+            #game-terminal {
+                min-height: 380px;
+                max-height: none;
+            }
+
             #map {
-                min-height: 360px;
+                min-height: 380px;
             }
         }
     </style>
@@ -359,11 +463,28 @@
                 <p>Select your character:</p>
             </div>
 
+            <section id="hint-panel" class="panel">
+                <p class="panel-title">Hints</p>
+                <div id="hints">Hints will appear here after the session starts.</div>
+            </section>
+
             <div id="character-select">
-                <button onclick="startNewGame('Weasel')">Weasel - Albert Arlington, the one who built the plane</button>
-                <button onclick="startNewGame('Sal')">Sal - Salvatore DeLuca, the mob boss</button>
-                <button onclick="startNewGame('Billy')">Billy Handsome, the enforcer</button>
-                <button onclick="startNewGame('Finn')">Finn O'Leary, the con man</button>
+                <button class="character-button" onclick="startNewGame('Weasel')">
+                    <span class="name">Weasel</span>
+                    <span class="role">Albert Arlington — built the plane</span>
+                </button>
+                <button class="character-button" onclick="startNewGame('Sal')">
+                    <span class="name">Sal</span>
+                    <span class="role">Salvatore DeLuca — the mob boss</span>
+                </button>
+                <button class="character-button" onclick="startNewGame('Billy')">
+                    <span class="name">Billy</span>
+                    <span class="role">Billy Handsome — the enforcer</span>
+                </button>
+                <button class="character-button" onclick="startNewGame('Finn')">
+                    <span class="name">Finn</span>
+                    <span class="role">Finn O'Leary — the con man</span>
+                </button>
             </div>
 
             <div id="input-area" class="controls" style="display: none;">
@@ -381,11 +502,12 @@
             <section id="map-panel" class="panel">
                 <p class="panel-title">BSP Map</p>
                 <svg id="map" viewBox="0 0 800 800" role="img" aria-label="Generated Alcatraz map"></svg>
-            </section>
-
-            <section id="hint-panel" class="panel">
-                <p class="panel-title">Hints</p>
-                <div id="hints">Hints will appear here after the session starts.</div>
+                <div class="map-legend">
+                    <span><i class="legend-current"></i> You</span>
+                    <span><i class="legend-warden"></i> Warden</span>
+                    <span><i class="legend-item"></i> Item</span>
+                    <span><i class="legend-visited"></i> Visited</span>
+                </div>
             </section>
 
             <section id="context-panel" class="panel">
@@ -620,7 +742,8 @@
                 label.setAttribute("y", roomCenter.y);
                 label.setAttribute("text-anchor", "middle");
                 label.setAttribute("dominant-baseline", "middle");
-                label.setAttribute("font-size", "13");
+                label.setAttribute("font-size", "18");
+                label.setAttribute("font-weight", "600");
                 label.setAttribute("fill", "#f5ecd1");
                 label.textContent = shortName(room.name);
                 map.appendChild(label);
