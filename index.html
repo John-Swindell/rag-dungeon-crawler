@@ -188,13 +188,106 @@
             max-height: 50vh;
             padding: 18px 20px;
             overflow-y: auto;
-            line-height: 1.55;
-            font-size: 14px;
+            line-height: 1.6;
+            font-size: 16px;
         }
 
         #game-terminal p {
-            margin: 0 0 10px;
+            margin: 0 0 8px;
             white-space: pre-wrap;
+        }
+
+        #game-terminal .term-section {
+            margin: 16px 0 8px;
+            color: var(--muted);
+            font-size: 13px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #game-terminal .term-section::before,
+        #game-terminal .term-section::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--line), transparent);
+            opacity: 0.7;
+        }
+
+        #game-terminal .term-line {
+            display: flex;
+            gap: 12px;
+            align-items: baseline;
+            margin: 0 0 6px;
+        }
+
+        #game-terminal .term-tag {
+            color: var(--muted);
+            font-size: 13px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            min-width: 80px;
+        }
+
+        #game-terminal .term-value {
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        #game-terminal .term-value.room { color: var(--gold); font-weight: 600; letter-spacing: 0.04em; }
+        #game-terminal .term-value.item { color: var(--blue); }
+
+        #game-terminal .inv-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        #game-terminal .inv-chip {
+            padding: 3px 10px;
+            border: 1px solid rgba(123, 199, 255, 0.35);
+            color: var(--blue);
+            font-size: 14px;
+            background: rgba(123, 199, 255, 0.06);
+        }
+
+        #game-terminal .inv-empty {
+            color: var(--line);
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        #game-terminal .prompt {
+            color: var(--green);
+            margin-top: 12px;
+            font-size: 16px;
+        }
+
+        #game-terminal .prompt::before {
+            content: "❯ ";
+            color: var(--gold);
+            margin-right: 2px;
+        }
+
+        #game-terminal .banner {
+            color: var(--gold);
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            border: 1px dashed rgba(244, 201, 93, 0.35);
+            padding: 10px 12px;
+            margin: 12px 0;
+            text-align: center;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        #game-terminal .meta {
+            color: var(--muted);
+            font-size: 14px;
+            letter-spacing: 0.08em;
         }
 
         .error {
@@ -353,15 +446,53 @@
             opacity: 0.6;
         }
 
-        #hints,
         #context {
             min-height: 42px;
             color: var(--text);
             line-height: 1.45;
         }
 
+        .parts-counter {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .parts-counter-label {
+            color: var(--muted);
+            font-size: 16px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .parts-counter-value {
+            color: var(--gold);
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            min-width: 2ch;
+        }
+
         .inventory {
             color: var(--blue);
+        }
+
+        button:disabled {
+            color: var(--line);
+            background: rgba(27, 23, 18, 0.7);
+            border-color: rgba(122, 113, 88, 0.5);
+            cursor: default;
+            opacity: 0.55;
+            transform: none;
+        }
+
+        button:disabled:hover {
+            color: var(--line);
+            border-color: rgba(122, 113, 88, 0.5);
+            transform: none;
         }
 
         .video-section {
@@ -456,15 +587,18 @@
     <main class="shell">
         <section>
             <div id="game-terminal" class="panel">
-                <p>Initializing connection to Alcatraz...</p>
-                <p>Select your character:</p>
+                <p class="meta">Initializing connection to Alcatraz...</p>
+                <p class="meta">Select your character:</p>
             </div>
 
             <section id="briefing-panel" class="panel">
-                <p class="panel-title">Briefing</p>
+                <p class="panel-title">Narrative</p>
                 <div id="context">The island is quiet.</div>
                 <div class="briefing-divider"></div>
-                <div id="hints">Hints will appear here after the session starts.</div>
+                <div class="parts-counter" aria-live="polite">
+                    <span class="parts-counter-label">Parts Remaining</span>
+                    <span id="parts-remaining" class="parts-counter-value">8</span>
+                </div>
             </section>
 
             <div id="character-select">
@@ -488,7 +622,7 @@
 
             <div id="input-area" class="controls" style="display: none;">
                 <div id="exit-buttons"></div>
-                <button onclick="fetchPickup()">Pick Up Item</button>
+                <button id="pickup-button" onclick="fetchPickup()" disabled>Pick Up Item</button>
             </div>
         </section>
 
@@ -543,14 +677,82 @@
         const characterSelect = document.getElementById("character-select");
         const inputArea = document.getElementById("input-area");
         const exitButtons = document.getElementById("exit-buttons");
+        const pickupButton = document.getElementById("pickup-button");
         const map = document.getElementById("map");
-        const hints = document.getElementById("hints");
         const context = document.getElementById("context");
+        const partsRemaining = document.getElementById("parts-remaining");
+        const TOTAL_PARTS = 8;
 
         function printToTerminal(text, className = "") {
             const p = document.createElement("p");
             p.innerText = text;
             if (className) p.className = className;
+            terminal.appendChild(p);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function printSection(label) {
+            const p = document.createElement("p");
+            p.className = "term-section";
+            p.innerText = label;
+            terminal.appendChild(p);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function printKeyed(tag, value, valueClass = "") {
+            const row = document.createElement("p");
+            row.className = "term-line";
+            const t = document.createElement("span");
+            t.className = "term-tag";
+            t.innerText = tag;
+            const v = document.createElement("span");
+            v.className = "term-value" + (valueClass ? " " + valueClass : "");
+            v.innerText = value;
+            row.appendChild(t);
+            row.appendChild(v);
+            terminal.appendChild(row);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function printInventory(items) {
+            const row = document.createElement("p");
+            row.className = "term-line";
+            const t = document.createElement("span");
+            t.className = "term-tag";
+            t.innerText = "carried";
+            row.appendChild(t);
+            if (!items || items.length === 0) {
+                const empty = document.createElement("span");
+                empty.className = "inv-empty";
+                empty.innerText = "— empty —";
+                row.appendChild(empty);
+            } else {
+                const chips = document.createElement("span");
+                chips.className = "inv-chips";
+                items.forEach((item) => {
+                    const chip = document.createElement("span");
+                    chip.className = "inv-chip";
+                    chip.innerText = item;
+                    chips.appendChild(chip);
+                });
+                row.appendChild(chips);
+            }
+            terminal.appendChild(row);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function printBanner(text) {
+            const p = document.createElement("p");
+            p.className = "banner";
+            p.innerText = text;
+            terminal.appendChild(p);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function printPrompt(text) {
+            const p = document.createElement("p");
+            p.className = "prompt";
+            p.innerText = text;
             terminal.appendChild(p);
             terminal.scrollTop = terminal.scrollHeight;
         }
@@ -592,8 +794,8 @@
                 stopLoading();
                 currentSessionId = data.session_id;
 
-                printToTerminal(`Connection established. Session ID: ${currentSessionId}`);
-                printToTerminal("\n=== ESCAPE FROM ALCATRAZ ===");
+                printToTerminal(`Connection established. Session ID: ${currentSessionId}`, "meta");
+                printBanner("Escape from Alcatraz");
                 handleApiResponse(data, false);
                 inputArea.style.display = "grid";
             } catch (error) {
@@ -605,7 +807,7 @@
 
         async function fetchMove(direction) {
             if (!currentSessionId) return;
-            printToTerminal(`\n> go ${direction}`, "command");
+            printPrompt(`go ${direction}`);
             try {
                 const response = await fetch(`${API_BASE_URL}/${currentSessionId}/move`, {
                     method: "POST",
@@ -619,8 +821,8 @@
         }
 
         async function fetchPickup() {
-            if (!currentSessionId) return;
-            printToTerminal(`\n> pickup`, "command");
+            if (!currentSessionId || !currentState || !currentState.room_item) return;
+            printPrompt("pickup");
             try {
                 const response = await fetch(`${API_BASE_URL}/${currentSessionId}/pickup`, { method: "POST" });
                 handleApiResponse(await readApiResponse(response));
@@ -639,27 +841,37 @@
 
         function handleApiResponse(data, echoMessage = true) {
             currentState = data;
-            if (echoMessage) printToTerminal(data.message);
+            if (echoMessage && data.message) printToTerminal(data.message);
 
             if (data.status === "playing") {
                 describeCurrentState();
             } else {
-                printToTerminal(`\n*** GAME OVER: ${data.status.toUpperCase()} ***`);
+                printBanner(`Game Over — ${data.status}`);
                 inputArea.style.display = "none";
             }
 
             renderExitButtons(data);
             renderMap(data);
-            renderHints(data.hints);
+            renderPartsRemaining(data);
+            updatePickupButton(data);
             context.innerText = data.narrative_context || "The island gives you nothing for free.";
         }
 
         function describeCurrentState() {
             if (!currentState) return;
-            printToTerminal(`You are in ${currentState.current_room}.`);
-            if (currentState.room_item) printToTerminal(`You see ${currentState.room_item} here.`);
-            printToTerminal(`Exits: ${currentState.available_directions.join(", ") || "none"}`);
-            printToTerminal(`Inventory: [${currentState.inventory.join(", ")}]`, "inventory");
+            printSection("Location");
+            printKeyed("room", currentState.current_room, "room");
+            if (currentState.room_item) {
+                printKeyed("item", currentState.room_item, "item");
+            } else {
+                printKeyed("item", "nothing of use");
+            }
+            printSection("Inventory");
+            printInventory(currentState.inventory);
+            if (currentState.available_directions && currentState.available_directions.length) {
+                printSection("Exits");
+                printKeyed("paths", currentState.available_directions.join(" · "));
+            }
         }
 
         function renderExitButtons(state) {
@@ -677,17 +889,15 @@
             });
         }
 
-        function renderHints(hintList) {
-            hints.innerHTML = "";
-            if (!hintList || hintList.length === 0) {
-                hints.innerText = "No new hints.";
-                return;
-            }
-            hintList.forEach((hint) => {
-                const line = document.createElement("div");
-                line.innerText = hint;
-                hints.appendChild(line);
-            });
+        function renderPartsRemaining(state) {
+            const remaining = Math.max(TOTAL_PARTS - state.inventory.length, 0);
+            partsRemaining.innerText = String(remaining);
+        }
+
+        function updatePickupButton(state) {
+            const canPickup = state.status === "playing" && Boolean(state.room_item);
+            pickupButton.disabled = !canPickup;
+            pickupButton.innerText = canPickup ? `Pick Up ${state.room_item}` : "Pick Up Item";
         }
 
         function renderMap(data) {
