@@ -282,12 +282,6 @@
             color: var(--gold);
         }
 
-        .input-row {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 8px;
-        }
-
         #exit-buttons {
             display: flex;
             flex-wrap: wrap;
@@ -347,13 +341,16 @@
         .legend-item    { background: rgba(123, 199, 255, 0.55); border-color: var(--blue); }
         .legend-visited { background: rgba(138, 255, 128, 0.30); border-color: var(--green); }
 
-        #hint-panel {
+        #briefing-panel {
             margin-top: 14px;
             padding: 14px 16px;
         }
 
-        #context-panel {
-            padding: 14px 16px;
+        .briefing-divider {
+            height: 1px;
+            background: var(--line);
+            margin: 12px 0;
+            opacity: 0.6;
         }
 
         #hints,
@@ -463,8 +460,10 @@
                 <p>Select your character:</p>
             </div>
 
-            <section id="hint-panel" class="panel">
-                <p class="panel-title">Hints</p>
+            <section id="briefing-panel" class="panel">
+                <p class="panel-title">Briefing</p>
+                <div id="context">The island is quiet.</div>
+                <div class="briefing-divider"></div>
                 <div id="hints">Hints will appear here after the session starts.</div>
             </section>
 
@@ -488,11 +487,6 @@
             </div>
 
             <div id="input-area" class="controls" style="display: none;">
-                <div class="input-row">
-                    <label for="command-input" hidden>Command</label>
-                    <input type="text" id="command-input" placeholder="go north, pickup, look" autocomplete="off">
-                    <button onclick="sendCommand()">Execute</button>
-                </div>
                 <div id="exit-buttons"></div>
                 <button onclick="fetchPickup()">Pick Up Item</button>
             </div>
@@ -510,10 +504,6 @@
                 </div>
             </section>
 
-            <section id="context-panel" class="panel">
-                <p class="panel-title">Narrative Context</p>
-                <div id="context">The island is quiet.</div>
-            </section>
         </aside>
     </main>
 
@@ -552,7 +542,6 @@
         const terminal = document.getElementById("game-terminal");
         const characterSelect = document.getElementById("character-select");
         const inputArea = document.getElementById("input-area");
-        const commandInput = document.getElementById("command-input");
         const exitButtons = document.getElementById("exit-buttons");
         const map = document.getElementById("map");
         const hints = document.getElementById("hints");
@@ -607,7 +596,6 @@
                 printToTerminal("\n=== ESCAPE FROM ALCATRAZ ===");
                 handleApiResponse(data, false);
                 inputArea.style.display = "grid";
-                commandInput.focus();
             } catch (error) {
                 stopLoading();
                 printToTerminal(`Error: ${error.message}`, "error");
@@ -615,41 +603,30 @@
             }
         }
 
-        async function sendCommand() {
-            const cmd = commandInput.value.trim().toLowerCase();
-            commandInput.value = "";
-            if (!cmd || !currentSessionId) return;
-
-            printToTerminal(`\n> ${cmd}`, "command");
-
+        async function fetchMove(direction) {
+            if (!currentSessionId) return;
+            printToTerminal(`\n> go ${direction}`, "command");
             try {
-                if (cmd.startsWith("go ")) {
-                    await fetchMove(cmd.substring(3).trim());
-                } else if (cmd === "pickup" || cmd === "pick up") {
-                    await fetchPickup();
-                } else if (cmd === "look") {
-                    describeCurrentState();
-                } else {
-                    printToTerminal("Unknown command. Try 'go [direction]', 'pickup', or 'look'.", "error");
-                }
+                const response = await fetch(`${API_BASE_URL}/${currentSessionId}/move`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ direction })
+                });
+                handleApiResponse(await readApiResponse(response));
             } catch (error) {
                 printToTerminal(`Network error: ${error.message}`, "error");
             }
         }
 
-        async function fetchMove(direction) {
-            const response = await fetch(`${API_BASE_URL}/${currentSessionId}/move`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ direction })
-            });
-            handleApiResponse(await readApiResponse(response));
-        }
-
         async function fetchPickup() {
             if (!currentSessionId) return;
-            const response = await fetch(`${API_BASE_URL}/${currentSessionId}/pickup`, { method: "POST" });
-            handleApiResponse(await readApiResponse(response));
+            printToTerminal(`\n> pickup`, "command");
+            try {
+                const response = await fetch(`${API_BASE_URL}/${currentSessionId}/pickup`, { method: "POST" });
+                handleApiResponse(await readApiResponse(response));
+            } catch (error) {
+                printToTerminal(`Network error: ${error.message}`, "error");
+            }
         }
 
         async function readApiResponse(response) {
@@ -671,7 +648,7 @@
                 inputArea.style.display = "none";
             }
 
-            renderExitButtons(data.available_directions);
+            renderExitButtons(data);
             renderMap(data);
             renderHints(data.hints);
             context.innerText = data.narrative_context || "The island gives you nothing for free.";
@@ -685,11 +662,16 @@
             printToTerminal(`Inventory: [${currentState.inventory.join(", ")}]`, "inventory");
         }
 
-        function renderExitButtons(directions) {
+        function renderExitButtons(state) {
             exitButtons.innerHTML = "";
-            directions.forEach((direction) => {
+            const currentRoom = state.map_rooms.find((r) => r.name === state.current_room);
+            state.available_directions.forEach((direction) => {
+                const target = currentRoom && currentRoom.connections
+                    ? currentRoom.connections[direction]
+                    : null;
+                const label = target ? `Go to ${target}` : `Go ${direction}`;
                 const button = document.createElement("button");
-                button.innerText = `Go ${direction}`;
+                button.innerText = label;
                 button.onclick = () => fetchMove(direction);
                 exitButtons.appendChild(button);
             });
@@ -792,9 +774,6 @@
                 .replace("Citadel Tunnels", "Tunnels");
         }
 
-        commandInput.addEventListener("keypress", function(event) {
-            if (event.key === "Enter") sendCommand();
-        });
     </script>
 </body>
 </html>
