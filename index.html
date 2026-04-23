@@ -3,91 +3,493 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAG Narrative Engine</title>
+    <title>Alcatraz Icarus</title>
     <style>
-        body { background-color: #1e1e1e; color: #00ff00; font-family: monospace; padding: 20px; }
-        #game-terminal { border: 1px solid #00ff00; padding: 15px; height: 400px; overflow-y: scroll; margin-bottom: 10px; }
-        input { background: #000; color: #00ff00; border: 1px solid #00ff00; padding: 5px; width: 80%; font-family: monospace; }
-        button { background: #00ff00; color: #000; border: none; padding: 5px 15px; cursor: pointer; font-weight: bold; }
-        #character-select { margin-bottom: 10px; }
-        #character-select button {
-            display: block;
-            width: 100%;
-            text-align: left;
-            padding: 10px 15px;
-            margin-bottom: 5px;
-            background: #000;
-            color: #00ff00;
-            border: 1px solid #00ff00;
-            font-family: monospace;
-            font-size: 14px;
-            cursor: pointer;
+        :root {
+            --bg: #12100d;
+            --panel: #1b1712;
+            --panel-strong: #251f17;
+            --text: #d8caa8;
+            --muted: #93896f;
+            --line: #5f5644;
+            --green: #8aff80;
+            --gold: #f4c95d;
+            --red: #ff5d4d;
+            --blue: #7bc7ff;
+            --shadow: rgba(0, 0, 0, 0.35);
         }
-        #character-select button:hover { background: #003300; }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 24px;
+            color: var(--text);
+            font-family: "IBM Plex Mono", "Fira Code", "Courier New", monospace;
+            background:
+                radial-gradient(circle at 18% 12%, rgba(244, 201, 93, 0.14), transparent 28%),
+                linear-gradient(135deg, #12100d 0%, #171d1b 48%, #0e1115 100%);
+        }
+
+        .page-header {
+            max-width: 980px;
+            margin: 0 auto 18px;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--gold);
+            font-size: clamp(26px, 4vw, 44px);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .repo-link {
+            color: var(--green);
+            font-size: 13px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            text-decoration: none;
+            padding: 6px 10px;
+            border: 1px solid var(--line);
+            transition: border-color 120ms ease, color 120ms ease, transform 120ms ease;
+        }
+
+        .repo-link:hover {
+            color: var(--gold);
+            border-color: var(--gold);
+            transform: translateY(-1px);
+        }
+
+        .page-section {
+            max-width: 980px;
+            margin: 0 auto 18px;
+            width: 100%;
+        }
+
+        .grader-note {
+            margin: 0 0 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .loading-line {
+            color: var(--gold);
+        }
+
+        .shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            background: linear-gradient(180deg, rgba(37, 31, 23, 0.96), rgba(20, 18, 14, 0.96));
+            box-shadow: 0 20px 60px var(--shadow);
+        }
+
+        details.panel {
+            margin-bottom: 14px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 18px;
+            color: var(--gold);
+            cursor: pointer;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            list-style: none;
+            text-transform: uppercase;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        summary::after {
+            content: "+";
+            color: var(--green);
+            font-size: 22px;
+        }
+
+        details[open] summary::after {
+            content: "-";
+        }
+
+        .essay,
+        .video-wrap {
+            border-top: 1px solid var(--line);
+            padding: 18px;
+        }
+
+        .essay {
+            max-height: 58vh;
+            overflow-y: auto;
+            line-height: 1.65;
+        }
+
+        .essay h2,
+        .essay h3 {
+            margin: 0 0 12px;
+            color: var(--gold);
+        }
+
+        .essay p {
+            margin: 0 0 16px;
+        }
+
+        .essay strong {
+            color: var(--blue);
+        }
+
+        #game-terminal {
+            min-height: 430px;
+            max-height: 58vh;
+            padding: 18px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        #game-terminal p {
+            margin: 0 0 10px;
+            white-space: pre-wrap;
+        }
+
+        .error {
+            color: var(--red);
+        }
+
+        .command {
+            color: var(--green);
+        }
+
+        .controls {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        #character-select {
+            display: grid;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        input,
+        button {
+            font: inherit;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--line);
+            color: var(--green);
+            background: #090907;
+        }
+
+        button {
+            padding: 11px 14px;
+            border: 1px solid var(--line);
+            color: var(--text);
+            background: var(--panel-strong);
+            cursor: pointer;
+            transition: transform 120ms ease, border-color 120ms ease, color 120ms ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+        }
+
+        #exit-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        #map-panel {
+            padding: 14px;
+        }
+
+        .panel-title {
+            margin: 0 0 10px;
+            color: var(--muted);
+            font-size: 13px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        #map {
+            width: 100%;
+            min-height: 430px;
+            border: 1px solid var(--line);
+            background:
+                linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                #0d0f0d;
+            background-size: 40px 40px;
+        }
+
+        #hint-panel,
+        #context-panel {
+            margin-top: 12px;
+            padding: 14px;
+        }
+
+        #hints,
+        #context {
+            min-height: 42px;
+            color: var(--text);
+            line-height: 1.45;
+        }
+
+        .inventory {
+            color: var(--blue);
+        }
+
+        .video-section {
+            margin-top: 18px;
+            margin-bottom: 0;
+        }
+
+        .video-frame {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            background: #090907;
+            aspect-ratio: 16 / 9;
+        }
+
+        .video-frame iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        @media (max-width: 980px) {
+            body {
+                padding: 14px;
+            }
+
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            #game-terminal,
+            #map {
+                min-height: 360px;
+            }
+        }
     </style>
 </head>
 <body>
+    <header class="page-header">
+        <h1>Alcatraz Icarus</h1>
+        <a class="repo-link"
+           href="https://github.com/John-Swindell/rag-dungeon-crawler"
+           target="_blank"
+           rel="noopener noreferrer">
+            View Repository
+        </a>
+    </header>
 
-    <h1>RAG Narrative Engine terminal_</h1>
+    <section class="page-section">
+        <details class="panel">
+            <summary>Professional Self-Assessment</summary>
+            <div class="essay">
+                <h2>Professional Self-Assessment</h2>
+                <p><strong>John Swindell | CS 499 Capstone</strong></p>
 
-    <div id="game-terminal">
-        <p>Initializing connection to server...</p>
-        <p>Select your character:</p>
-    </div>
+                <p>When I first began my Computer Science program at SNHU, I operated under the misconception that the pinnacle of development was being a full-stack software engineer writing in languages like Haskell. However, exposure to a wide variety of programming disciplines radically shifted my perspective. I quickly realized my true passion lay in backend infrastructure, data pipelines, and Python. My coursework, combined with professional experience in financial machine learning, has driven my ambition to specialize in Platform Engineering and MLOps. This ePortfolio reflects that evolution, demonstrating my transition from writing isolated scripts to architecting scalable, cloud-native, AI-driven platforms.</p>
 
-    <div id="character-select">
-        <button onclick="startNewGame('Weasel')">Weasel - Albert Arlington, the one who built the plane</button>
-        <button onclick="startNewGame('Sal')">Sal - Salvatore DeLuca, the mob boss</button>
-        <button onclick="startNewGame('Billy')">Billy - Billy Handsome, the enforcer</button>
-        <button onclick="startNewGame('Finn')">Finn - Michael O'Leary, the con man</button>
-    </div>
+                <h3>Software Engineering, Databases, and Security</h3>
+                <p>The core of my capstone revolves around the total architectural overhaul of an early-degree Python scripting project. I completely decoupled the original monolithic application, containerizing the game logic with Docker and exposing it as a RESTful microservice using FastAPI. To showcase modern deployment practices, I utilized Terraform as an Infrastructure as Code (IaC) tool to programmatically provision serverless environments via Google Cloud Platform's Cloud Run.</p>
 
-    <div id="input-area" style="display: none;">
-        <label for="command-input"></label><input type="text" id="command-input" placeholder="Enter command (e.g., 'go east', 'pickup')" autocomplete="off">
-        <button onclick="sendCommand()">Execute</button>
-    </div>
+                <p>Furthermore, I modernized the application's persistence layer by integrating MongoDB Atlas. This went beyond basic NoSQL document storage; I implemented Atlas Vector Search to construct a Retrieval-Augmented Generation (RAG) pipeline. By injecting semantic context into the Gemini API, I enabled dynamic, on-the-fly narrative generation.</p>
+
+                <p>Security is a foundational element of any platform engineering role, and I approached this architecture with a strict security mindset. I implemented Cross-Origin Resource Sharing (CORS) middleware to protect the API and utilized GCP Secret Manager to securely inject API keys at runtime, ensuring no credentials were ever committed to version control. This philosophy extends to my work outside the classroom. Professionally, I build secure ETL data pipelines for crypto assets. Personally, I manage a bare-metal home lab running a distributed cluster of local open-weight LLMs via Llama RPC, heavily utilizing Docker to sandbox AI agents and mitigate the risk of unauthorized system commands.</p>
+
+                <h3>Data Structures and Algorithms</h3>
+                <p>To push my technical boundaries, I replaced my capstone's static map dictionary with a dynamic procedural generation engine. I implemented a Binary Space Partitioning (BSP) algorithm to construct the dungeon rooms server-side. I then translated this layout into a Graph data structure to facilitate intelligent pathfinding.</p>
+
+                <p>By implementing the A* (A-Star) algorithm without diagonal movement, I engineered an NPC capable of actively hunting the player. Because my professional work heavily involves 2D NumPy matrices and Pandas DataFrames, conceptualizing spatial traversal through an adjacency list was a deliberate challenge. This implementation solidified my grasp of space and time complexity, proving my ability to select the most efficient data structures for demanding computational tasks.</p>
+
+                <h3>Collaboration and Professional Communication</h3>
+                <p>Clear communication is essential when bridging the gap between software development and infrastructure operations. During Milestone 1, I conducted a formal Code Review video, analyzing legacy code, identifying bottlenecks, and successfully communicating a highly technical refactoring plan to stakeholders.</p>
+
+                <p>I apply this same communication strategy to safeguard intellectual property. When I wanted to showcase the complex crypto data pipelines I built for my employer, I navigated strict IP constraints by drafting detailed architectural diagrams and blog posts instead of sharing proprietary code. This allowed me to effectively communicate my system design expertise without compromising operational security.</p>
+
+                <h3>Conclusion</h3>
+                <p>The artifacts within this ePortfolio are not isolated assignments; they represent a cohesive, production-grade system. By synthesizing complex algorithmic logic (BSP/A*), robust database management (MongoDB/Vector Search), and automated cloud infrastructure (Terraform/Docker), I have demonstrated the comprehensive skill set required of a modern Platform Engineer. As I look toward the future, I am actively expanding my distributed hardware cluster and studying for the Certified Kubernetes Administrator (CKA) exam, ensuring my technical capabilities continue to scale alongside the rapidly evolving MLOps landscape.</p>
+            </div>
+        </details>
+    </section>
+
+    <main class="shell">
+        <section>
+            <div id="game-terminal" class="panel">
+                <p>Initializing connection to Alcatraz...</p>
+                <p>Select your character:</p>
+            </div>
+
+            <div id="character-select">
+                <button onclick="startNewGame('Weasel')">Weasel - Albert Arlington, the one who built the plane</button>
+                <button onclick="startNewGame('Sal')">Sal - Salvatore DeLuca, the mob boss</button>
+                <button onclick="startNewGame('Billy')">Billy Handsome, the enforcer</button>
+                <button onclick="startNewGame('Finn')">Finn O'Leary, the con man</button>
+            </div>
+
+            <div id="input-area" class="controls" style="display: none;">
+                <div class="input-row">
+                    <label for="command-input" hidden>Command</label>
+                    <input type="text" id="command-input" placeholder="go north, pickup, look" autocomplete="off">
+                    <button onclick="sendCommand()">Execute</button>
+                </div>
+                <div id="exit-buttons"></div>
+                <button onclick="fetchPickup()">Pick Up Item</button>
+            </div>
+        </section>
+
+        <aside>
+            <section id="map-panel" class="panel">
+                <p class="panel-title">BSP Map</p>
+                <svg id="map" viewBox="0 0 800 800" role="img" aria-label="Generated Alcatraz map"></svg>
+            </section>
+
+            <section id="hint-panel" class="panel">
+                <p class="panel-title">Hints</p>
+                <div id="hints">Hints will appear here after the session starts.</div>
+            </section>
+
+            <section id="context-panel" class="panel">
+                <p class="panel-title">Narrative Context</p>
+                <div id="context">The island is quiet.</div>
+            </section>
+        </aside>
+    </main>
+
+    <section class="page-section video-section">
+        <details class="panel">
+            <summary>Code Review Video</summary>
+            <div class="video-wrap">
+                <p class="grader-note">Formal code review and project enhancement plan.</p>
+                <p class="grader-note">
+                    If the embedded video does not load, open it directly:
+                    <a href="https://youtu.be/WrfAeEAwgOk" target="_blank" rel="noopener noreferrer">Code Review Video</a>
+                </p>
+                <div class="video-frame">
+                    <iframe
+                        src="https://www.youtube.com/embed/WrfAeEAwgOk"
+                        title="CS 499 Capstone Code Review Video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            </div>
+        </details>
+    </section>
 
     <script>
-        const API_BASE_URL = "http://localhost:8000/game";
+        const API_BASE_URL = window.API_BASE_URL || (
+            window.location.protocol.startsWith("http") && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
+                ? "https://rag-narrative-engine-e4zxxcwrua-uc.a.run.app/game"
+                : "http://localhost:8080/game"
+        );
+
         let currentSessionId = null;
+        let currentState = null;
+        let loadingTimer = null;
 
         const terminal = document.getElementById("game-terminal");
         const characterSelect = document.getElementById("character-select");
         const inputArea = document.getElementById("input-area");
         const commandInput = document.getElementById("command-input");
+        const exitButtons = document.getElementById("exit-buttons");
+        const map = document.getElementById("map");
+        const hints = document.getElementById("hints");
+        const context = document.getElementById("context");
 
-        function printToTerminal(text, isError = false) {
+        function printToTerminal(text, className = "") {
             const p = document.createElement("p");
             p.innerText = text;
-            if (isError) p.style.color = "red";
+            if (className) p.className = className;
             terminal.appendChild(p);
             terminal.scrollTop = terminal.scrollHeight;
         }
 
+        function showLoading(label) {
+            stopLoading();
+            const p = document.createElement("p");
+            p.id = "loading-line";
+            p.className = "loading-line";
+            p.innerText = `${label}.`;
+            terminal.appendChild(p);
+            terminal.scrollTop = terminal.scrollHeight;
+            let dots = 1;
+            loadingTimer = setInterval(() => {
+                dots = (dots % 3) + 1;
+                p.innerText = `${label}${".".repeat(dots)}`;
+            }, 400);
+        }
+
+        function stopLoading() {
+            if (loadingTimer) {
+                clearInterval(loadingTimer);
+                loadingTimer = null;
+            }
+            const existing = document.getElementById("loading-line");
+            if (existing) existing.remove();
+        }
+
         async function startNewGame(character) {
             characterSelect.style.display = "none";
+            showLoading("Generating map");
             try {
                 const response = await fetch(`${API_BASE_URL}/new`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ character: character })
+                    body: JSON.stringify({ character })
                 });
-                if (!response.ok) throw new Error("Failed to connect to API");
-
-                const data = await response.json();
+                const data = await readApiResponse(response);
+                stopLoading();
                 currentSessionId = data.session_id;
 
                 printToTerminal(`Connection established. Session ID: ${currentSessionId}`);
-                printToTerminal(`\n=== ALCATRAZ - ESCAPE FROM THE ISLAND ===`);
-                printToTerminal(data.message);
-                printToTerminal(`You are in the ${data.current_room}.`);
-                printToTerminal(`Available exits: ${data.available_directions.join(", ")}`);
-
-                inputArea.style.display = "block";
+                printToTerminal("\n=== ESCAPE FROM ALCATRAZ ===");
+                handleApiResponse(data, false);
+                inputArea.style.display = "grid";
                 commandInput.focus();
             } catch (error) {
-                printToTerminal("Error: Could not connect to the game server. Is it running?", true);
-                characterSelect.style.display = "block";
+                stopLoading();
+                printToTerminal(`Error: ${error.message}`, "error");
+                characterSelect.style.display = "grid";
             }
         }
 
@@ -96,19 +498,20 @@
             commandInput.value = "";
             if (!cmd || !currentSessionId) return;
 
-            printToTerminal(`\n> ${cmd}`);
+            printToTerminal(`\n> ${cmd}`, "command");
 
             try {
                 if (cmd.startsWith("go ")) {
-                    const direction = cmd.substring(3).trim();
-                    await fetchMove(direction);
-                } else if (cmd === "pickup") {
+                    await fetchMove(cmd.substring(3).trim());
+                } else if (cmd === "pickup" || cmd === "pick up") {
                     await fetchPickup();
+                } else if (cmd === "look") {
+                    describeCurrentState();
                 } else {
-                    printToTerminal("Unknown command. Try 'go [direction]' or 'pickup'.", true);
+                    printToTerminal("Unknown command. Try 'go [direction]', 'pickup', or 'look'.", "error");
                 }
             } catch (error) {
-                printToTerminal("Network error occurred.", true);
+                printToTerminal(`Network error: ${error.message}`, "error");
             }
         }
 
@@ -116,31 +519,154 @@
             const response = await fetch(`${API_BASE_URL}/${currentSessionId}/move`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ direction: direction })
+                body: JSON.stringify({ direction })
             });
-            const data = await response.json();
-            handleApiResponse(data);
+            handleApiResponse(await readApiResponse(response));
         }
 
         async function fetchPickup() {
-            const response = await fetch(`${API_BASE_URL}/${currentSessionId}/pickup`, {
-                method: "POST"
-            });
-            const data = await response.json();
-            handleApiResponse(data);
+            if (!currentSessionId) return;
+            const response = await fetch(`${API_BASE_URL}/${currentSessionId}/pickup`, { method: "POST" });
+            handleApiResponse(await readApiResponse(response));
         }
 
-        function handleApiResponse(data) {
-            printToTerminal(data.message);
+        async function readApiResponse(response) {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || "The API rejected the request.");
+            }
+            return data;
+        }
+
+        function handleApiResponse(data, echoMessage = true) {
+            currentState = data;
+            if (echoMessage) printToTerminal(data.message);
+
             if (data.status === "playing") {
-                printToTerminal(`You are in the ${data.current_room}.`);
-                if (data.room_item) printToTerminal(`You see a ${data.room_item} here.`);
-                printToTerminal(`Exits: ${data.available_directions.join(", ")}`);
-                printToTerminal(`Inventory: [${data.inventory.join(", ")}]`);
+                describeCurrentState();
             } else {
-                printToTerminal(`\n*** GAME OVER: Status [${data.status.toUpperCase()}] ***`);
+                printToTerminal(`\n*** GAME OVER: ${data.status.toUpperCase()} ***`);
                 inputArea.style.display = "none";
             }
+
+            renderExitButtons(data.available_directions);
+            renderMap(data);
+            renderHints(data.hints);
+            context.innerText = data.narrative_context || "The island gives you nothing for free.";
+        }
+
+        function describeCurrentState() {
+            if (!currentState) return;
+            printToTerminal(`You are in ${currentState.current_room}.`);
+            if (currentState.room_item) printToTerminal(`You see ${currentState.room_item} here.`);
+            printToTerminal(`Exits: ${currentState.available_directions.join(", ") || "none"}`);
+            printToTerminal(`Inventory: [${currentState.inventory.join(", ")}]`, "inventory");
+        }
+
+        function renderExitButtons(directions) {
+            exitButtons.innerHTML = "";
+            directions.forEach((direction) => {
+                const button = document.createElement("button");
+                button.innerText = `Go ${direction}`;
+                button.onclick = () => fetchMove(direction);
+                exitButtons.appendChild(button);
+            });
+        }
+
+        function renderHints(hintList) {
+            hints.innerHTML = "";
+            if (!hintList || hintList.length === 0) {
+                hints.innerText = "No new hints.";
+                return;
+            }
+            hintList.forEach((hint) => {
+                const line = document.createElement("div");
+                line.innerText = hint;
+                hints.appendChild(line);
+            });
+        }
+
+        function renderMap(data) {
+            map.innerHTML = "";
+            map.setAttribute("viewBox", `0 0 ${data.map_size[0]} ${data.map_size[1]}`);
+
+            const roomByName = Object.fromEntries(data.map_rooms.map((room) => [room.name, room]));
+            const drawnEdges = new Set();
+
+            data.map_rooms.forEach((room) => {
+                Object.values(room.connections).forEach((targetName) => {
+                    const edgeKey = [room.name, targetName].sort().join("::");
+                    if (drawnEdges.has(edgeKey) || !roomByName[targetName]) return;
+                    drawnEdges.add(edgeKey);
+                    const sourceCenter = center(room);
+                    const targetCenter = center(roomByName[targetName]);
+                    map.appendChild(svgLine(sourceCenter.x, sourceCenter.y, targetCenter.x, targetCenter.y, "#5f5644", 4));
+                });
+            });
+
+            data.map_rooms.forEach((room) => {
+                const isCurrent = room.name === data.current_room;
+                const isWarden = room.name === data.warden_room;
+                const hasItem = Boolean(room.item);
+                const visited = data.visited_rooms.includes(room.name);
+                const fill = isCurrent ? "rgba(244,201,93,0.88)" : isWarden ? "rgba(255,93,77,0.84)" : hasItem ? "rgba(123,199,255,0.55)" : visited ? "rgba(138,255,128,0.30)" : "rgba(216,202,168,0.20)";
+                const stroke = isCurrent ? "#f4c95d" : isWarden ? "#ff5d4d" : "#93896f";
+
+                map.appendChild(svgRect(room.position[0], room.position[1], room.size[0], room.size[1], fill, stroke));
+
+                const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                const roomCenter = center(room);
+                label.setAttribute("x", roomCenter.x);
+                label.setAttribute("y", roomCenter.y);
+                label.setAttribute("text-anchor", "middle");
+                label.setAttribute("dominant-baseline", "middle");
+                label.setAttribute("font-size", "13");
+                label.setAttribute("fill", "#f5ecd1");
+                label.textContent = shortName(room.name);
+                map.appendChild(label);
+            });
+        }
+
+        function center(room) {
+            return {
+                x: room.position[0] + room.size[0] / 2,
+                y: room.position[1] + room.size[1] / 2
+            };
+        }
+
+        function svgLine(x1, y1, x2, y2, stroke, width) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", stroke);
+            line.setAttribute("stroke-width", width);
+            line.setAttribute("stroke-linecap", "round");
+            return line;
+        }
+
+        function svgRect(x, y, width, height, fill, stroke) {
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", x);
+            rect.setAttribute("y", y);
+            rect.setAttribute("width", width);
+            rect.setAttribute("height", height);
+            rect.setAttribute("rx", 8);
+            rect.setAttribute("fill", fill);
+            rect.setAttribute("stroke", stroke);
+            rect.setAttribute("stroke-width", 3);
+            return rect;
+        }
+
+        function shortName(name) {
+            return name
+                .replace("Wardens Office", "Warden")
+                .replace("Michigan Avenue", "Michigan")
+                .replace("Recreation Yard", "Yard")
+                .replace("Gondola Station", "Gondola")
+                .replace("Spiral Staircase", "Stairs")
+                .replace("Citadel Tunnels", "Tunnels");
         }
 
         commandInput.addEventListener("keypress", function(event) {

@@ -1,0 +1,12 @@
+project_id                      = "YOUR_GCP_PROJECT_ID"
+region                          = "us-central1"
+service_name                    = "rag-narrative-engine"
+custom_domain                   = "api.example.com"
+cloud_run_service_account_email = "YOUR_SERVICE_ACCOUNT@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com"
+mongo_db                        = "dungeon_crawler"
+mongo_uri_secret_id             = "YOUR_MONGO_URI_SECRET_ID"
+gemini_api_key_secret_id        = "YOUR_GEMINI_API_KEY_SECRET_ID"
+mongo_vector_index              = "game_context_vector_index"
+gemini_model                    = "gemini-2.5-flash"
+embedding_model                 = "gemini-embedding-001"
+embedding_dimensions            = 768
