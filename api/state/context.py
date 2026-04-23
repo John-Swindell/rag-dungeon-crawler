@@ -3,7 +3,7 @@ from __future__ import annotations
 from pymongo.errors import PyMongoError
 
 from api.config import settings
-from api.db import get_db
+from api.db import disable_db, get_db
 from api.models.game_state import GameState
 
 
@@ -36,7 +36,10 @@ async def save_context(
     }
     if embedding is not None:
         doc["embedding"] = embedding
-    await db.context.insert_one(doc)
+    try:
+        await db.context.insert_one(doc)
+    except PyMongoError:
+        disable_db()
 
 
 async def get_context(
@@ -80,4 +83,8 @@ async def get_context(
         {"_id": 0, "embedding": 0},
     ).sort("timestamp", -1).limit(limit)
 
-    return await cursor.to_list(length=limit)
+    try:
+        return await cursor.to_list(length=limit)
+    except PyMongoError:
+        disable_db()
+        return []

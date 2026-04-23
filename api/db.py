@@ -6,7 +6,7 @@ _client: AsyncIOMotorClient | None = None
 _db: AsyncIOMotorDatabase | None = None
 
 
-def get_db() -> AsyncIOMotorDatabase:
+def get_db() -> AsyncIOMotorDatabase | None:
     return _db
 
 
@@ -18,9 +18,13 @@ def connect() -> None:
     _db = _client[settings.mongo_db]
 
 
-def disconnect() -> None:
+def disable_db() -> None:
     global _client, _db
     if _client:
         _client.close()
     _client = None
     _db = None
+
+
+def disconnect() -> None:
+    disable_db()
