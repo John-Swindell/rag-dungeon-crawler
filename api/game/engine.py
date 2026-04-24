@@ -7,7 +7,7 @@ from api.game.pathfinding import a_star
 from api.game.world import ROOF_ROOM, START_ROOM, TOTAL_ITEMS, WARDEN_ROOM, build_rooms
 from api.models.game_state import GameState, Room
 
-WARDEN_RELEASE_ITEM_COUNT = 5
+WARDEN_RELEASE_ITEM_COUNT = 8
 
 
 def _now():
